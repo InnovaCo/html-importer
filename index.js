@@ -172,11 +172,11 @@ function prepareHtml(html, options, callback) {
 				content: dom
 			});
 
-			if (options.processHTML) {
-				if (options.processHTML.length > 1) {
-					return options.processHTML(dom, next);
+			if (options.process) {
+				if (options.process.length > 1) {
+					return options.process(dom, next);
 				}
-				options.processHTML(dom);
+				options.process(dom);
 			}
 			next();
 		};
