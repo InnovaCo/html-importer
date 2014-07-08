@@ -4,7 +4,7 @@
   "description": "Processes HTML files (invalid XML) with XSLT",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha"
+    "test": "./node_modules/.bin/mocha  --reporter list"
   },
   "repository": {
     "type": "git",

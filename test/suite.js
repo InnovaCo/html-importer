@@ -4,8 +4,8 @@ var assert = require('assert');
 
 var transformer = require('../');
 
-function read(p, options) {
-	return fs.readFileSync(path.join(__dirname, p), options);
+function read(p, isFile) {
+	return fs.readFileSync(path.join(__dirname, p), isFile ? {encoding: 'utf8'} : null);
 }
 
 function htmlProcessor(nodes) {
@@ -27,16 +27,16 @@ function asyncHtmlProcessor(nodes, res, cb) {
 	}, 10);
 }
 
-describe.only('HTML transformer', function() {
+describe('HTML transformer', function() {
 	var options = {
 		cwd: __dirname
 	};
 
 	var fixtures = {
-		test1: read('fixtures/test1.xml', {encoding: 'utf8'}),
-		test2: read('fixtures/test2.xml', {encoding: 'utf8'}),
-		test3: read('fixtures/test3.xml', {encoding: 'utf8'}),
-		test4: read('fixtures/test4.xml', {encoding: 'utf8'})
+		test1: read('fixtures/test1.xml', true),
+		test2: read('fixtures/test2.xml', true),
+		test3: read('fixtures/test3.xml', true),
+		test4: read('fixtures/test4.xml', true)
 	};
 
 	it('should apply transforms from buffers', function(done) {
@@ -62,7 +62,7 @@ describe.only('HTML transformer', function() {
 	it('should resolve glob patterns when applying transforms from files', function(done) {
 		transformer('xsl/stylesheet1.xsl', options)
 			.run('html/*.html', options, function(err, out) {
-				assert.equal(out.length, 2);
+				assert.equal(out.length, 3);
 				assert.equal(out[0].content, fixtures.test1);
 				assert.equal(out[1].content, fixtures.test2);
 				done();
