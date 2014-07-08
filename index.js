@@ -1,211 +1,140 @@
-var fs = require('fs');
-var path = require('path');
-
 var xslt = require('node_xslt');
 var preprocessor = require('inn-template');
-var glob = require('glob');
-var htmlparser = require('htmlparser2');
-var DomHandler = require('domhandler');
-var DomUtils = require('domutils');
 
-/**
- * Парсит указанный XML/HTML документ в DOM
- * @param  {String} code Содержимое документа, которое нужно распарсить
- * @return {Object}      DOM-дерево документа
- */
-function parseDoc(code) {
-	var handler = new DomHandler();
-	var parser = new htmlparser.Parser(handler);
-	parser.write(code);
-	parser.done();
-	return handler.dom;
+var fileUtils = require('./lib/file-utils');
+var dom = require('./lib/dom');
+
+function Transformer(stylesheet, options) {
+	if (!(this instanceof Transformer)) {
+		return new Transformer(stylesheet, options);
+	}
+
+	this._stylesheet = null;
+	this._stylesheetOpt = null;
+	this._stylesheetCache = {};
+	this._processors = [];
+
+	if (stylesheet) {
+		this.stylesheet(stylesheet, options);
+	}
 }
 
-function strinfigyDom(dom) {
-	var opt = {xmlMode: true};
-	return dom.map(function(node) {
-		return DomUtils.getOuterHTML(node, opt);
-	}).join('');
-}
+Transformer.prototype = {
+	stylesheet: function(files, options) {
+		this._stylesheet = Array.isArray(files) ? files : [files];
+		this._stylesheetOpt = options || {};
+		return this;
+	},
 
-function readFileList(list, callback) {
-	var input = list.slice(0);
-	var output = [];
-	var next = function() {
-		if (!input.length) {
-			return callback(null, output);
+	use: function(processor) {
+		for (var i = 0, il = arguments.length, p; i < il; i++) {
+			p = arguments[i];
+			if (!~this._processors.indexOf(p)) {
+				this._processors.push(p);
+			}
 		}
 
-		var cur = input.shift();
-		fs.readFile(cur, {encoding: 'utf8'}, function(err, content) {
+		return this;
+	},
+
+	/**
+	 * Готовим набор XSL-файлов, через который будем проводить трансформации:
+	 * резолвим пути, читаем файлы и преобразуем их в закэшированные
+	 * объекты, которые можно многократно применять к файлам
+	 * @param  {Function} callback 
+	 */
+	_prepareStylesheet: function(callback) {
+		var self = this;
+		fileUtils.read(this._stylesheet, this._stylesheetOpt, function(err, result) {
 			if (err) {
 				return callback(err);
 			}
 
-			output.push({
-				file: cur,
-				content: content
-			});
+			var cache = self._stylesheetCache;
+			callback(null, result.map(function(item) {
+				if (!cache[item.file]) {
+					var doc = preprocessor.transform(item.content);
+					doc = xslt.readXsltString(doc);
+					doc.filePath = item.file;
+					cache[item.file] = doc;
+				}
+
+				return cache[item.file];
+			}));
+		});
+	},
+
+	/**
+	 * Готовим набор HTML-файлов к преобразованию: резолвим пути,
+	 * читаем файлы, применяем препроцессинг (если надо) и возвращаем
+	 * содержимое файлов в виде валидного XML
+	 * @param  {Function} callback
+	 */
+	_prepareInput: function(files, options, callback) {
+		var self = this;
+		fileUtils.read(files, options, function(err, input) {
+			if (err) {
+				return callback(err);
+			}
+
+			var output = [];
+			var next = function() {
+				if (!input.length) {
+					return callback(null, output.map(function(item) {
+						item.content = dom.stringify(item.content);
+						return item;
+					}));
+				}
+
+				var cur = input.shift();
+				self._processDoc(cur, function(doc) {
+					output.push({
+						file: cur.file,
+						content: doc
+					});
+					next();
+				});
+			};
+
 			next();
 		});
-	};
-	next();
-}
+	},
 
-function absPath(p, options) {
-	options = options || {};
-	var cwd = options.cwd || process.cwd();
-	return path.normalize(path.join(cwd, p));
-}
-
-function absPathList(list, options) {
-	options = options || {cwd: process.cwd()};
-	return list.map(function(p) {
-		return absPath(p, options);
-	});
-}
-
-/**
- * Резолвит ссылку на файл и возвращает его содержимое. Если передан
- * `Buffer`, то считаем, что передали само содержиоме файла и просто 
- * преобразуем его в строку.
- * Также можно указать массив — ссылок или содержимого файлов – который
- * также будет преобразован
- * @param {Object} f Путь к файлу либо содержимое файла (Buffer)
- * @param {Function} callback 
- */
-function resolveFile(f, options, callback) {
-	if (!Array.isArray(f)) {
-		f = [f];
-	}
-
-	if (typeof options === 'function') {
-		callback = options;
-		options = {};
-	}
-
-	var input = f.slice(0);
-	var output = [];
-	var next = function() {
-		if (!input.length) {
-			return callback(null, output);
-		}
-
-		var cur = input.shift();
-		if (cur instanceof Buffer) {
-			output.push({
-				file: null,
-				content: cur.toString()
-			});
-			return next();
-		}
-
-		glob(cur, options, function(err, result) {
-			if (err) {
-				return callback(err);
-			}
-
-			readFileList(absPathList(result, options), function(err, content) {
-				if (err) {
-					return callback(err);
-				}
-				output = output.concat(content);
-				next();
-			});
-		});
-	};
-
-	next();
-}
-
-/**
- * Готовим набор XSL-файлов, через который будем проводить трансформации:
- * резолвим пути, читаем файлы и преобразуем их в закэшированные
- * объекты, которые можно многократно применять к файлам
- * @param  {Object}   xsl      Набор путей к XSL-файлам или сами файлы
- * @param  {Object}   options  Дополнительные опции для резолвинга путей к XSL
- * @param  {Function} callback 
- */
-function prepareXsl(xsl, options, callback) {
-	resolveFile(xsl, options, function(err, result) {
-		if (err) {
-			return callback(err);
-		}
-
-		result = result.map(function(item) {
-			item.doc = preprocessor.transform(item.content);
-			item.doc = xslt.readXsltString(item.doc);
-			return item;
-		});
-
-		callback(null, result);
-	});
-}
-
-/**
- * Готовим набор HTML-файлов к преобразованию: резолвим пути,
- * читаем файлы, применяем препроцессинг (если надо) и возвращаем
- * содержимое файлов в виде валидного XML
- * @param  {Object}   html     Набор путей к HTML-файлам или сами файлы
- * @param  {Object}   options  Дополнительные опции для поиска и преобразования HTML-файлов
- * @param  {Function} callback
- */
-function prepareHtml(html, options, callback) {
-	resolveFile(html, options, function(err, input) {
-		if (err) {
-			return callback(err);
-		}
-
-		var output = [];
+	_processDoc: function(res, callback) {
+		var doc = dom.parse(res.content);
+		var queue = this._processors.slice(0);
 		var next = function() {
-			if (!input.length) {
-				return callback(null, output.map(function(item) {
-					item.content = strinfigyDom(item.content);
-					return item;
-				}));
+			if (!queue.length) {
+				return callback(doc);
 			}
 
-			var cur = input.shift();
-			var dom = parseDoc(cur.content);
-			output.push({
-				file: cur.file,
-				content: dom
-			});
-
-			if (options.process) {
-				if (options.process.length > 1) {
-					return options.process(dom, next);
-				}
-				options.process(dom);
-			}
-			next();
+			var fn = queue.shift();
+			fn.length > 2 ? fn(doc, res, next) : next(fn(doc, res));
 		};
-
 		next();
-	});
-}
+	},
 
-module.exports = {
-	transform: function(html, xsl, options, callback) {
+	run: function(files, options, callback) {
 		if (typeof options === 'function') {
 			callback = options;
-			options = {};
+			options = null;
 		}
 
-		prepareXsl(xsl, options, function(err, xslList) {
+		var self = this;
+		self._prepareStylesheet(function(err, stylesheetList) {
 			if (err) {
 				return callback(err);
 			}
 
-			prepareHtml(html, options, function(err, docList) {
+			self._prepareInput(files, options, function(err, docList) {
 				if (err) {
 					return callback(err);
 				}
 
 				callback(null, docList.map(function(item) {
 					var out = item.content;
-					xslList.forEach(function(xslItem) {
-						out = xslt.transform(xslItem.doc, xslt.readXmlString(out), []);
+					stylesheetList.forEach(function(stylesheetItem) {
+						out = xslt.transform(stylesheetItem, xslt.readXmlString(out), []);
 					});
 
 					return {
@@ -217,3 +146,5 @@ module.exports = {
 		});
 	}
 };
+
+module.exports = Transformer;

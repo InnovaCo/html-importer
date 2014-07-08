@@ -18,9 +18,16 @@ function htmlProcessor(nodes) {
 			htmlProcessor(node.children);
 		}
 	});
-};
+}
 
-describe('HTML transformer', function() {
+function asyncHtmlProcessor(nodes, res, cb) {
+	setTimeout(function() {
+		htmlProcessor(nodes);
+		cb();
+	}, 10);
+}
+
+describe.only('HTML transformer', function() {
 	var options = {
 		cwd: __dirname
 	};
@@ -36,7 +43,7 @@ describe('HTML transformer', function() {
 		var html = read('html/test1.html');
 		var xsl = read('xsl/stylesheet1.xsl');
 
-		transformer.transform(html, xsl, function(err, out) {
+		transformer(xsl).run(html, function(err, out) {
 			assert.equal(out.length, 1);
 			assert.equal(out[0].content, fixtures.test1);
 			done();
@@ -44,58 +51,50 @@ describe('HTML transformer', function() {
 	});
 
 	it('should apply transforms from files', function(done) {
-		transformer.transform('html/test1.html', 'xsl/stylesheet1.xsl', options, function(err, out) {
-			assert.equal(out.length, 1);
-			assert.equal(out[0].content, fixtures.test1);
-			done();
-		});
+		transformer('xsl/stylesheet1.xsl', options)
+			.run('html/test1.html', options, function(err, out) {
+				assert.equal(out.length, 1);
+				assert.equal(out[0].content, fixtures.test1);
+				done();
+			});
 	});
 
 	it('should resolve glob patterns when applying transforms from files', function(done) {
-		transformer.transform('html/*.html', 'xsl/stylesheet1.xsl', options, function(err, out) {
-			assert.equal(out.length, 2);
-			assert.equal(out[0].content, fixtures.test1);
-			assert.equal(out[1].content, fixtures.test2);
-			done();
-		});
+		transformer('xsl/stylesheet1.xsl', options)
+			.run('html/*.html', options, function(err, out) {
+				assert.equal(out.length, 2);
+				assert.equal(out[0].content, fixtures.test1);
+				assert.equal(out[1].content, fixtures.test2);
+				done();
+			});
 	});
 
 	it('should apply multiple XSL stylesheets', function(done) {
-		transformer.transform('html/test1.html', 'xsl/{stylesheet1,stylesheet2}.xsl', options, function(err, out) {
-			assert.equal(out.length, 1);
-			assert.equal(out[0].content, fixtures.test3);
-			done();
-		});
+		transformer('xsl/{stylesheet1,stylesheet2}.xsl', options)
+			.run('html/test1.html', options, function(err, out) {
+				assert.equal(out.length, 1);
+				assert.equal(out[0].content, fixtures.test3);
+				done();
+			});
 	});
 
 	it('should apply preprocessor to HTML before transform', function(done) {
-		var opt = {
-			cwd: options.cwd,
-			process: htmlProcessor
-		};
-
-		transformer.transform('html/test2.html', 'xsl/stylesheet3.xsl', opt, function(err, out) {
-			assert.equal(out.length, 1);
-			assert.equal(out[0].content, fixtures.test4);
-			done();
-		});
+		transformer('xsl/stylesheet3.xsl', options)
+			.use(htmlProcessor)
+			.run('html/test2.html', options, function(err, out) {
+				assert.equal(out.length, 1);
+				assert.equal(out[0].content, fixtures.test4);
+				done();
+			});
 	});
 
 	it('should apply async preprocessor to HTML before transform', function(done) {
-		var opt = {
-			cwd: options.cwd,
-			process: function(dom, cb) {
-				setTimeout(function() {
-					htmlProcessor(dom);
-					cb();
-				}, 10);
-			}
-		};
-
-		transformer.transform('html/test2.html', 'xsl/stylesheet3.xsl', opt, function(err, out) {
-			assert.equal(out.length, 1);
-			assert.equal(out[0].content, fixtures.test4);
-			done();
-		});
+		transformer('xsl/stylesheet3.xsl', options)
+			.use(asyncHtmlProcessor)
+			.run('html/test2.html', options, function(err, out) {
+				assert.equal(out.length, 1);
+				assert.equal(out[0].content, fixtures.test4);
+				done();
+			});
 	});
 });
