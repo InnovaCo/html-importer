@@ -4,6 +4,8 @@ var preprocessor = require('xslt-preprocessor');
 var fileUtils = require('./lib/file-utils');
 var dom = require('./lib/dom');
 
+var stylesheetCache = {};
+
 function Transformer(stylesheet, options) {
 	if (!(this instanceof Transformer)) {
 		return new Transformer(stylesheet, options);
@@ -11,7 +13,6 @@ function Transformer(stylesheet, options) {
 
 	this._stylesheet = null;
 	this._stylesheetOpt = null;
-	this._stylesheetCache = {};
 	this._processors = [];
 
 	if (stylesheet) {
@@ -50,7 +51,7 @@ Transformer.prototype = {
 				return callback(err);
 			}
 
-			var cache = self._stylesheetCache;
+			var cache = stylesheetCache;
 			callback(null, result.map(function(item) {
 				if (!cache[item.file]) {
 					var doc = preprocessor.transform(item.content);
@@ -148,3 +149,6 @@ Transformer.prototype = {
 };
 
 module.exports = Transformer;
+module.exports.resetCache = function() {
+	stylesheetCache = {};
+};
