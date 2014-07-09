@@ -1,14 +1,14 @@
 {
-  "name": "html-transform",
+  "name": "html-importer",
   "version": "0.0.1",
-  "description": "Processes HTML files (invalid XML) with XSLT",
+  "description": "Processes HTML files (invalid XML) with XSLT for importing into another project",
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha  --reporter list"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.inn.ru:template/html-transform.git"
+    "url": "git@github.com:InnovaCo/html-importer.git"
   },
   "keywords": [
     "html",
@@ -24,7 +24,7 @@
     "domutils": "^1.5.0",
     "glob": "^4.0.3",
     "htmlparser2": "^3.7.2",
-    "inn-template": "git+https://github.inn.ru/template/preprocessor.git",
+    "xslt-preprocessor": "git+https://github.com/InnovaCo/xslt-preprocessor.git",
     "node_xslt": "^0.1.9"
   },
   "devDependencies": {

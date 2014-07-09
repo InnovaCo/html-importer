@@ -1,5 +1,5 @@
 var xslt = require('node_xslt');
-var preprocessor = require('inn-template');
+var preprocessor = require('xslt-preprocessor');
 
 var fileUtils = require('./lib/file-utils');
 var dom = require('./lib/dom');
