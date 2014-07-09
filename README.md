@@ -1,4 +1,4 @@
-# Трансформация HTML через XSLT
+# Трансформация HTML через XSLT [![Build Status](https://travis-ci.org/InnovaCo/html-importer.svg?branch=master)](https://travis-ci.org/InnovaCo/html-importer)
 
 Модуль позволяет применить XSL-транформации указанным HTML-файлам, даже если это невалидный XML.
 
