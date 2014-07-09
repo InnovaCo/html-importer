@@ -6,6 +6,8 @@ var dom = require('./lib/dom');
 
 var stylesheetCache = {};
 
+xslt.useInternalErrors();
+
 function Transformer(stylesheet, options) {
 	if (!(this instanceof Transformer)) {
 		return new Transformer(stylesheet, options);
