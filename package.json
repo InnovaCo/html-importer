@@ -1,6 +1,6 @@
 {
   "name": "html-importer",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Processes HTML files (invalid XML) with XSLT for importing into another project",
   "main": "index.js",
   "scripts": {
@@ -20,12 +20,13 @@
   "author": "Sergey Chikuyonok",
   "license": "MIT",
   "dependencies": {
+    "async": "^0.9.0",
     "domhandler": "^2.2.0",
     "domutils": "^1.5.0",
     "glob": "^4.0.3",
     "htmlparser2": "^3.7.2",
-    "xslt-preprocessor": "git+https://github.com/InnovaCo/xslt-preprocessor.git",
-    "node_xslt": "git+https://github.com/bsuh/node_xslt.git#c21155564ba0d05f7a830eeb39c32d4b32b91111"
+    "node_xslt": "git+https://github.com/bsuh/node_xslt.git#c21155564ba0d05f7a830eeb39c32d4b32b91111",
+    "xslt-preprocessor": "git+https://github.com/InnovaCo/xslt-preprocessor.git"
   },
   "devDependencies": {
     "mocha": "^1.20.1"

@@ -24,7 +24,7 @@ function Transformer(stylesheet, options) {
 
 Transformer.prototype = {
 	stylesheet: function(files, options) {
-		this._stylesheet = Array.isArray(files) ? files : [files];
+		this._stylesheet = files;
 		this._stylesheetOpt = options || {};
 		return this;
 	},
