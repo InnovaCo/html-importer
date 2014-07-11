@@ -48,6 +48,10 @@ Transformer.prototype = {
 	 */
 	_prepareStylesheet: function(callback) {
 		var self = this;
+		if (!this._stylesheet || !this._stylesheet.length) {
+			return callback(null, []);
+		}
+
 		fileUtils.read(this._stylesheet, this._stylesheetOpt, function(err, result) {
 			if (err) {
 				return callback(err);
