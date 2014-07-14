@@ -1,3 +1,9 @@
+var fs = require('fs');
+var path = require('path');
+var async = require('async');
+var glob = require('glob');
+var temp = require('temp').track();
+var mkdirp = require('mkdirp');
 var xslt = require('node_xslt');
 var preprocessor = require('xslt-preprocessor');
 
@@ -16,6 +22,7 @@ function Transformer(stylesheet, options) {
 	this._stylesheet = null;
 	this._stylesheetOpt = null;
 	this._processors = [];
+	this.processXslt = true;
 
 	if (stylesheet) {
 		this.stylesheet(stylesheet, options);
@@ -25,7 +32,7 @@ function Transformer(stylesheet, options) {
 Transformer.prototype = {
 	stylesheet: function(files, options) {
 		this._stylesheet = files;
-		this._stylesheetOpt = options || {};
+		this._stylesheetOpt = options;
 		return this;
 	},
 
@@ -41,6 +48,59 @@ Transformer.prototype = {
 	},
 
 	/**
+	 * Предварительная обработка XSL-файлов через препроцессор.
+	 * Файлы сохраняются в отдельную временную папку, при этом 
+	 * меняется `cwd` у `_stylesheetOpt`
+	 * @param  {Function} callback
+	 */
+	_preprocessStylesheet: function(callback) {
+		var opt = this._stylesheetOpt;
+		if (!this.processXslt || !opt) {
+			// nothing to process
+			return callback(null, null);
+		}
+
+		if (!opt.cwd) {
+			return callback(new Error('Unable to preprocess XSL: you should pass stylessheet glob options with `cwd` parameter'), null);
+		}
+
+		async.waterfall([
+			function(callback) {
+				glob('**/*.*', opt, callback);
+			},
+			function(files, callback) {
+				temp.mkdir('xsl', function(err, tmp) {
+					callback(err, files, tmp);
+				});
+			},
+			function(files, tmp, callback) {
+				var reStylesheet = /\.xslt?$/;
+				async.each(files, function(file, callback) {
+					var srcPath = path.normalize(path.join(opt.cwd, file));
+					var targetPath = path.join(tmp, file);
+
+					if (reStylesheet.test(file)) {
+						// preprocess XSLT files
+						async.waterfall([
+							function(callback) {
+								mkdirp(path.dirname(targetPath), callback);
+							},
+							function(result, callback) {
+								fs.readFile(srcPath, {encoding: 'utf8'}, callback);
+							},
+							function(content, callback) {
+								fs.writeFile(targetPath, preprocessor.transform(content), callback);
+							}
+						], callback);
+					} else {
+						fileUtils.copy(srcPath, targetPath, callback);
+					}
+				}, function(err) { callback(err, tmp); });
+			}
+		], callback);
+	},
+
+	/**
 	 * Готовим набор XSL-файлов, через который будем проводить трансформации:
 	 * резолвим пути, читаем файлы и преобразуем их в закэшированные
 	 * объекты, которые можно многократно применять к файлам
@@ -52,23 +112,44 @@ Transformer.prototype = {
 			return callback(null, []);
 		}
 
-		fileUtils.read(this._stylesheet, this._stylesheetOpt, function(err, result) {
-			if (err) {
-				return callback(err);
+		var opt = null;
+		if (this._stylesheetOpt) {
+			opt = {};
+			for (var p in this._stylesheetOpt) {
+				opt[p] = this._stylesheetOpt[p];
 			}
+		}
 
-			var cache = stylesheetCache;
-			callback(null, result.map(function(item) {
-				if (!cache[item.file]) {
-					var doc = preprocessor.transform(item.content);
-					doc = xslt.readXsltString(doc);
-					doc.filePath = item.file;
-					cache[item.file] = doc;
+		async.waterfall([
+			function(callback) {
+				// preprocess stylesheet and switch `cwd` so 
+				// next step will grab processed files from folder
+				// with preprocessed stylesheets
+				self._preprocessStylesheet(callback);
+			}, function(tmpPath, callback) {
+				if (tmpPath) {
+					opt.cwd = tmpPath;
 				}
 
-				return cache[item.file];
-			}));
-		});
+				fileUtils.read(self._stylesheet, opt, function(err, result) {
+					var cache = stylesheetCache;
+
+					callback(err, result && result.map(function(item) {
+						if (!item.file) {
+							var doc = item.content;
+							if (self.processXslt) {
+								doc = preprocessor.transform(item.content);
+							}
+							return xslt.readXsltString(doc);
+						} else if (!cache[item.file]) {
+							cache[item.file] = xslt.readXsltFile(item.file);
+						}
+
+						return cache[item.file];
+					}));
+				});
+			}
+		], callback);
 	},
 
 	/**
@@ -130,6 +211,7 @@ Transformer.prototype = {
 		var self = this;
 		self._prepareStylesheet(function(err, stylesheetList) {
 			if (err) {
+				console.log('err', err);
 				return callback(err);
 			}
 
