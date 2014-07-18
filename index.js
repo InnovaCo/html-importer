@@ -6,33 +6,40 @@ var temp = require('temp').track();
 var mkdirp = require('mkdirp');
 var xslt = require('node_xslt');
 var preprocessor = require('xslt-preprocessor');
-
-var fileUtils = require('./lib/file-utils');
+var utils = require('importer-utils');
 var dom = require('./lib/dom');
 
 var stylesheetCache = {};
 
 xslt.useInternalErrors();
 
-function Transformer(stylesheet, options) {
+function Transformer(stylesheet, params) {
 	if (!(this instanceof Transformer)) {
-		return new Transformer(stylesheet, options);
+		return new Transformer(stylesheet, params);
 	}
 
 	this._stylesheet = null;
-	this._stylesheetOpt = null;
+	this._stylesheetParams = [];
 	this._processors = [];
 	this.processXslt = true;
 
 	if (stylesheet) {
-		this.stylesheet(stylesheet, options);
+		this.stylesheet(stylesheet, params);
 	}
 }
 
 Transformer.prototype = {
-	stylesheet: function(files, options) {
-		this._stylesheet = files;
-		this._stylesheetOpt = options;
+	stylesheet: function(files, params) {
+		if (params && !Array.isArray(params)) {
+			var p = [];
+			Object.keys(params).forEach(function(key) {
+				p.push(key, params[key]);
+			});
+			params = p;
+		}
+
+		this._stylesheet = utils.file.normalize(files);
+		this._stylesheetParams = params || [];
 		return this;
 	},
 
@@ -54,14 +61,10 @@ Transformer.prototype = {
 	 * @param  {Function} callback
 	 */
 	_preprocessStylesheet: function(callback) {
-		var opt = this._stylesheetOpt;
-		if (!this.processXslt || !opt) {
+		var opt = this._stylesheet.options;
+		if (!this.processXslt || !opt.cwd) {
 			// nothing to process
 			return callback(null, null);
-		}
-
-		if (!opt.cwd) {
-			return callback(new Error('Unable to preprocess XSL: you should pass stylessheet glob options with `cwd` parameter'), null);
 		}
 
 		async.waterfall([
@@ -93,7 +96,7 @@ Transformer.prototype = {
 							}
 						], callback);
 					} else {
-						fileUtils.copy(srcPath, targetPath, callback);
+						utils.file.copy(srcPath, targetPath, callback);
 					}
 				}, function(err) { callback(err, tmp); });
 			}
@@ -108,17 +111,11 @@ Transformer.prototype = {
 	 */
 	_prepareStylesheet: function(callback) {
 		var self = this;
-		if (!this._stylesheet || !this._stylesheet.length) {
+		if (!this._stylesheet || !this._stylesheet.files.length) {
 			return callback(null, []);
 		}
 
-		var opt = null;
-		if (this._stylesheetOpt) {
-			opt = {};
-			for (var p in this._stylesheetOpt) {
-				opt[p] = this._stylesheetOpt[p];
-			}
-		}
+		var opt = utils.extend(this._stylesheet.options);
 
 		async.waterfall([
 			function(callback) {
@@ -127,12 +124,14 @@ Transformer.prototype = {
 				// with preprocessed stylesheets
 				self._preprocessStylesheet(callback);
 			}, function(tmpPath, callback) {
+				var oldCwd = opt.cwd
 				if (tmpPath) {
 					opt.cwd = tmpPath;
 				}
 
-				fileUtils.read(self._stylesheet, opt, function(err, result) {
+				utils.file.read(self._stylesheet, function(err, result) {
 					var cache = stylesheetCache;
+					opt.cwd = oldCwd;
 
 					callback(err, result && result.map(function(item) {
 						if (!item.file) {
@@ -158,9 +157,9 @@ Transformer.prototype = {
 	 * содержимое файлов в виде валидного XML
 	 * @param  {Function} callback
 	 */
-	_prepareInput: function(files, options, callback) {
+	_prepareInput: function(files, callback) {
 		var self = this;
-		fileUtils.read(files, options, function(err, input) {
+		utils.file.read(files, function(err, input) {
 			if (err) {
 				return callback(err);
 			}
@@ -202,20 +201,14 @@ Transformer.prototype = {
 		next();
 	},
 
-	run: function(files, options, callback) {
-		if (typeof options === 'function') {
-			callback = options;
-			options = null;
-		}
-
+	run: function(files, callback) {
 		var self = this;
 		self._prepareStylesheet(function(err, stylesheetList) {
 			if (err) {
-				console.log('err', err);
 				return callback(err);
 			}
 
-			self._prepareInput(files, options, function(err, docList) {
+			self._prepareInput(files, function(err, docList) {
 				if (err) {
 					return callback(err);
 				}
@@ -223,7 +216,7 @@ Transformer.prototype = {
 				callback(null, docList.map(function(item) {
 					var out = item.content;
 					stylesheetList.forEach(function(stylesheetItem) {
-						out = xslt.transform(stylesheetItem, xslt.readXmlString(out), []);
+						out = xslt.transform(stylesheetItem, xslt.readXmlString(out), self._stylesheetParams);
 					});
 
 					return {

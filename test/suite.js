@@ -28,9 +28,12 @@ function asyncHtmlProcessor(nodes, res, cb) {
 }
 
 describe('HTML transformer', function() {
-	var options = {
-		cwd: __dirname
-	};
+	function fileObj(src) {
+		return {
+			src: src,
+			cwd: __dirname
+		};
+	}
 
 	var fixtures = {
 		test1: read('fixtures/test1.xml', true),
@@ -51,8 +54,8 @@ describe('HTML transformer', function() {
 	});
 
 	it('should apply transforms from files', function(done) {
-		transformer('xsl/stylesheet1.xsl', options)
-			.run('html/test1.html', options, function(err, out) {
+		transformer(fileObj('xsl/stylesheet1.xsl'))
+			.run(fileObj('html/test1.html'), function(err, out) {
 				assert.equal(out.length, 1);
 				assert.equal(out[0].content, fixtures.test1);
 				done();
@@ -60,8 +63,8 @@ describe('HTML transformer', function() {
 	});
 
 	it('should resolve glob patterns when applying transforms from files', function(done) {
-		transformer('xsl/stylesheet1.xsl', options)
-			.run('html/*.html', options, function(err, out) {
+		transformer(fileObj('xsl/stylesheet1.xsl'))
+			.run(fileObj('html/*.html'), function(err, out) {
 				assert.equal(out.length, 3);
 				assert.equal(out[0].content, fixtures.test1);
 				assert.equal(out[1].content, fixtures.test2);
@@ -70,8 +73,8 @@ describe('HTML transformer', function() {
 	});
 
 	it('should apply multiple XSL stylesheets', function(done) {
-		transformer('xsl/{stylesheet1,stylesheet2}.xsl', options)
-			.run('html/test1.html', options, function(err, out) {
+		transformer(fileObj('xsl/{stylesheet1,stylesheet2}.xsl'))
+			.run(fileObj('html/test1.html'), function(err, out) {
 				assert.equal(out.length, 1);
 				assert.equal(out[0].content, fixtures.test3);
 				done();
@@ -79,9 +82,9 @@ describe('HTML transformer', function() {
 	});
 
 	it('should apply preprocessor to HTML before transform', function(done) {
-		transformer('xsl/stylesheet3.xsl', options)
+		transformer(fileObj('xsl/stylesheet3.xsl'))
 			.use(htmlProcessor)
-			.run('html/test2.html', options, function(err, out) {
+			.run(fileObj('html/test2.html'), function(err, out) {
 				assert.equal(out.length, 1);
 				assert.equal(out[0].content, fixtures.test4);
 				done();
@@ -89,9 +92,9 @@ describe('HTML transformer', function() {
 	});
 
 	it('should apply async preprocessor to HTML before transform', function(done) {
-		transformer('xsl/stylesheet3.xsl', options)
+		transformer(fileObj('xsl/stylesheet3.xsl'))
 			.use(asyncHtmlProcessor)
-			.run('html/test2.html', options, function(err, out) {
+			.run(fileObj('html/test2.html'), function(err, out) {
 				assert.equal(out.length, 1);
 				assert.equal(out[0].content, fixtures.test4);
 				done();
