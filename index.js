@@ -11,21 +11,19 @@ var dom = require('./lib/dom');
 
 var stylesheetCache = {};
 
-xslt.useInternalErrors();
-
-function Transformer(stylesheet, params) {
+function Transformer(options) {
 	if (!(this instanceof Transformer)) {
-		return new Transformer(stylesheet, params);
+		return new Transformer(options);
 	}
 
 	this._stylesheet = null;
 	this._stylesheetParams = [];
 	this._processors = [];
 	this.processXslt = true;
-
-	if (stylesheet) {
-		this.stylesheet(stylesheet, params);
-	}
+	this.options = utils.extend({
+		htmlParser: true,
+		suppressWarnings: true
+	}, options);
 }
 
 Transformer.prototype = {
@@ -203,6 +201,10 @@ Transformer.prototype = {
 
 	run: function(files, callback) {
 		var self = this;
+		if (self.options.suppressWarnings) {
+			xslt.useInternalErrors();
+		}
+
 		self._prepareStylesheet(function(err, stylesheetList) {
 			if (err) {
 				return callback(err);
@@ -216,7 +218,8 @@ Transformer.prototype = {
 				callback(null, docList.map(function(item) {
 					var out = item.content;
 					stylesheetList.forEach(function(stylesheetItem) {
-						out = xslt.transform(stylesheetItem, xslt.readXmlString(out), self._stylesheetParams);
+						var doc = self.options.htmlParser ? xslt.readHtmlString(out) : xslt.readXmlString(out);
+						out = xslt.transform(stylesheetItem, doc, self._stylesheetParams);
 					});
 
 					return {
