@@ -19,8 +19,8 @@ function Transformer(options) {
 	this._stylesheet = null;
 	this._stylesheetParams = [];
 	this._processors = [];
-	this.processXslt = true;
 	this.options = utils.extend({
+		processXslt: true,
 		htmlParser: true,
 		suppressWarnings: true
 	}, options);
@@ -60,7 +60,7 @@ Transformer.prototype = {
 	 */
 	_preprocessStylesheet: function(callback) {
 		var opt = this._stylesheet.options;
-		if (!this.processXslt || !opt.cwd) {
+		if (!this.options.processXslt || !opt.cwd) {
 			// nothing to process
 			return callback(null, null);
 		}
@@ -134,15 +134,15 @@ Transformer.prototype = {
 					callback(err, result && result.map(function(item) {
 						if (!item.file) {
 							var doc = item.content;
-							if (self.processXslt) {
+							if (self.options.processXslt) {
 								doc = preprocessor.transform(item.content);
 							}
 							return xslt.readXsltString(doc);
-						} else if (!cache[item.file]) {
-							cache[item.file] = xslt.readXsltFile(item.file);
+						} else if (!cache[item.absPath]) {
+							cache[item.absPath] = xslt.readXsltFile(item.absPath);
 						}
 
-						return cache[item.file];
+						return cache[item.absPath];
 					}));
 				});
 			}
@@ -173,10 +173,9 @@ Transformer.prototype = {
 
 				var cur = input.shift();
 				self._processDoc(cur, function(doc) {
-					output.push({
-						file: cur.file,
+					output.push(utils.extend({}, cur, {
 						content: doc
-					});
+					}));
 					next();
 				});
 			};
@@ -222,10 +221,9 @@ Transformer.prototype = {
 						out = xslt.transform(stylesheetItem, doc, self._stylesheetParams);
 					});
 
-					return {
-						file: item.file,
+					return utils.extend({}, item, {
 						content: out
-					}
+					});
 				}));
 			});
 		});
