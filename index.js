@@ -11,6 +11,33 @@ var dom = require('./lib/dom');
 
 var stylesheetCache = {};
 
+/**
+ * Стандартная функция для получения преобразованных файлов.
+ * Функция принимает на вход набор XML и XSL документов и возвращает
+ * массив преобразованных файлов.
+ * Используется как опция объекта `Transformer` и подразумевается,
+ * что он может быть перекрыт в конструкторе для получения нужного набора
+ * файлов
+ * @param  {Array} templates   Набор XSL-шаблонов
+ * @param  {Array} docs        Набор документов для преобразования
+ * @param  {Transformer} transformer Контекст, в котором делается преобразование
+ * @return {Array}             Набор преобразованных документов
+ */
+function transform(templates, docs, transformer) {
+	templates = templates || [];
+	return docs.map(function(item) {
+		var out = item.content;
+		templates.forEach(function(template) {
+			out = transformer.transform(template, out, transformer._stylesheetParams);
+		});
+
+		return utils.extend({}, item, {
+			content: out
+		});
+	});
+	
+}
+
 function Transformer(options) {
 	if (!(this instanceof Transformer)) {
 		return new Transformer(options);
@@ -22,7 +49,8 @@ function Transformer(options) {
 	this.options = utils.extend({
 		processXslt: true,
 		htmlParser: true,
-		suppressWarnings: true
+		suppressWarnings: true,
+		transform: transform
 	}, options);
 }
 
@@ -50,6 +78,25 @@ Transformer.prototype = {
 		}
 
 		return this;
+	},
+
+	transform: function(template, doc, params) {
+		if (typeof doc === 'string') {
+			doc = this.options.htmlParser ? xslt.readHtmlString(doc) : xslt.readXmlString(doc);
+		}
+
+		if (typeof params === 'object') {
+			// normalize XSL params
+			var normParams = [];
+			params = Object.keys(params).forEach(function(key) {
+				normParams.push(key, params[key]);
+			});
+			params = normParams;
+		} else {
+			params = params || [];
+		}
+
+		return xslt.transform(template, doc, params);
 	},
 
 	/**
@@ -138,11 +185,9 @@ Transformer.prototype = {
 								doc = preprocessor.transform(item.content);
 							}
 							return xslt.readXsltString(doc);
-						} else if (!cache[item.absPath]) {
-							cache[item.absPath] = xslt.readXsltFile(item.absPath);
 						}
 
-						return cache[item.absPath];
+						return xslt.readXsltFile(item.absPath);
 					}));
 				});
 			}
@@ -210,21 +255,7 @@ Transformer.prototype = {
 			}
 
 			self._prepareInput(files, function(err, docList) {
-				if (err) {
-					return callback(err);
-				}
-
-				callback(null, docList.map(function(item) {
-					var out = item.content;
-					stylesheetList.forEach(function(stylesheetItem) {
-						var doc = self.options.htmlParser ? xslt.readHtmlString(out) : xslt.readXmlString(out);
-						out = xslt.transform(stylesheetItem, doc, self._stylesheetParams);
-					});
-
-					return utils.extend({}, item, {
-						content: out
-					});
-				}));
+				return callback(err, !err && self.options.transform(stylesheetList, docList, self));
 			});
 		});
 	}
