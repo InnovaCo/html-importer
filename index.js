@@ -56,14 +56,6 @@ function Transformer(options) {
 
 Transformer.prototype = {
 	stylesheet: function(files, params) {
-		if (params && !Array.isArray(params)) {
-			var p = [];
-			Object.keys(params).forEach(function(key) {
-				p.push(key, params[key]);
-			});
-			params = p;
-		}
-
 		this._stylesheet = utils.file.normalize(files);
 		this._stylesheetParams = params || [];
 		return this;
@@ -85,7 +77,7 @@ Transformer.prototype = {
 			doc = this.options.htmlParser ? xslt.readHtmlString(doc) : xslt.readXmlString(doc);
 		}
 
-		if (typeof params === 'object') {
+		if (typeof params === 'object' && !Array.isArray(params)) {
 			// normalize XSL params
 			var normParams = [];
 			params = Object.keys(params).forEach(function(key) {
