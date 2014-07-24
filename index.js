@@ -177,9 +177,11 @@ Transformer.prototype = {
 								doc = preprocessor.transform(item.content);
 							}
 							return xslt.readXsltString(doc);
+						} else if (!cache[item.absPath]) {
+							cache[item.absPath] = xslt.readXsltFile(item.absPath);
 						}
 
-						return xslt.readXsltFile(item.absPath);
+						return cache[item.absPath];
 					}));
 				});
 			}
