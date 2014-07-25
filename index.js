@@ -71,10 +71,16 @@ Transformer.prototype = {
 		return this;
 	},
 
-	transform: function(template, doc, params) {
+	parseXml: function(doc, options) {
 		if (typeof doc === 'string') {
-			doc = this.options.htmlParser ? xslt.readHtmlString(doc) : xslt.readXmlString(doc);
+			options = utils.extend(this.options, options);
+			doc = options.htmlParser ? xslt.readHtmlString(doc) : xslt.readXmlString(doc);
 		}
+		return doc;
+	},
+
+	transform: function(template, doc, params) {
+		doc = this.parseXml(doc);
 
 		if (typeof params === 'object' && !Array.isArray(params)) {
 			// normalize XSL params
