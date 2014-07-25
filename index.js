@@ -231,6 +231,10 @@ Transformer.prototype = {
 	_processDoc: function(res, callback) {
 		var doc = dom.parse(res.content);
 		var queue = this._processors.slice(0);
+		if (this.options.use) {
+			queue = queue.concat(this.options.use);
+		}
+
 		var next = function() {
 			if (!queue.length) {
 				return callback(doc);
