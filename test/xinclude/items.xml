@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<!DOCTYPE files SYSTEM "entities.dtd">
+<items>
+	<item id="1">&euro;</item>
+	<item id="2">&cent;</item>
+</items>

@@ -35,7 +35,6 @@ function transform(templates, docs, transformer) {
 			content: out
 		});
 	});
-	
 }
 
 function Transformer(options) {
