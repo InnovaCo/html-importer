@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var assert = require('assert');
 var utils = require('importer-utils');
+var cleanup = require('../lib/cleanup');
 
 var transformer = require('../');
 
@@ -138,6 +139,16 @@ describe('HTML transformer', function() {
 				assert.equal(out.length, 2);
 				assert.equal(out[0].content, fixtures.test5ru);
 				assert.equal(out[1].content, fixtures.test5en);
+				done();
+			});
+	});
+
+	it('clean-up attributes', function(done) {
+		var content = new Buffer('<html xmlns="http://www.w3.org/1999/html"><body><svg xmlns="http://www.w3.org/2000/svg"></svg></body></html>');
+		transformer()
+			.use(cleanup())
+			.run(content, function(err, out) {
+				assert.equal(out[0].content, '<html><body><svg xmlns="http://www.w3.org/2000/svg"></svg></body></html>');
 				done();
 			});
 	});
