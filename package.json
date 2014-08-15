@@ -27,7 +27,7 @@
     "htmlparser2": "^3.7.2",
     "importer-utils": "git+https://github.com/InnovaCo/importer-utils.git",
     "mkdirp": "^0.5.0",
-    "node_xslt": "git+https://github.com/InnovaCo/node_xslt.git#stable",
+    "node_xslt": "git+https://github.com/InnovaCo/node_xslt.git#v1.0.1",
     "temp": "^0.8.0",
     "xslt-preprocessor": "git+https://github.com/InnovaCo/xslt-preprocessor.git"
   },
