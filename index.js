@@ -201,34 +201,19 @@ Transformer.prototype = {
 	 */
 	_prepareInput: function(files, callback) {
 		var self = this;
-		utils.file.read(files, function(err, input) {
-			if (err) {
-				return callback(err);
+		var process = this._processResource.bind(this);
+
+		async.waterfall([
+			function(callback) {
+				utils.file.read(files, callback);
+			},
+			function(files, callback) {
+				async.map(files, process, callback);
 			}
-
-			var output = [];
-			var next = function() {
-				if (!input.length) {
-					return callback(null, output.map(function(item) {
-						item.content = dom.stringify(item.content);
-						return item;
-					}));
-				}
-
-				var cur = input.shift();
-				self._processDoc(cur, function(doc) {
-					output.push(utils.extend({}, cur, {
-						content: doc
-					}));
-					next();
-				});
-			};
-
-			next();
-		});
+		], callback);
 	},
 
-	_processDoc: function(res, callback) {
+	_processResource: function(res, callback) {
 		var doc = dom.parse(res.content);
 		var queue = this._processors.slice(0);
 		if (this.options.use) {
@@ -237,7 +222,8 @@ Transformer.prototype = {
 
 		var next = function() {
 			if (!queue.length) {
-				return callback(doc);
+				res.content = dom.stringify(doc);
+				return callback(null, res);
 			}
 
 			var fn = queue.shift();
