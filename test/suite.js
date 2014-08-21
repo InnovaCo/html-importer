@@ -156,10 +156,31 @@ describe('HTML transformer', function() {
 	it('missing entities', function(done) {
 		var content = new Buffer('<?xml version="1.0"?><!DOCTYPE html SYSTEM "test/xinclude/entities.dtd"><html><body><a href="/?a=3&b=4">Hello&nbsp;world</a></body></html>');
 		transformer({htmlParser: false})
-			.use(cleanup())
 			.stylesheet(fileObj('xsl/copy.xsl'))
 			.run(content, function(err, out) {
 				assert.equal(out[0].content, '<html><body><a href="/?a=3&amp;b=4">Hello' + String.fromCharCode(160) + 'world</a></body></html>\n');
+				done();
+			});
+	});
+
+	it('parse HTML', function(done) {
+		// должен сохранить незакрытый <link>
+		var content = new Buffer('<html><body><link><p>test</p></body></html>');
+		transformer()
+			.stylesheet(fileObj('xsl/copy.xsl'))
+			.run(content, function(err, out) {
+				assert.equal(out[0].content, '<html><body>\n<link>\n<p>test</p>\n</body></html>\n');
+				done();
+			});
+	})
+
+	it('parse XML', function(done) {
+		// не должен заворачивать <p>test</p> в тэг <script>
+		var content = new Buffer('<html><body><script/><p>test</p></body></html>');
+		transformer({htmlParser: false})
+			.stylesheet(fileObj('xsl/copy.xsl'))
+			.run(content, function(err, out) {
+				assert.equal(out[0].content, '<html><body>\n<script></script><p>test</p>\n</body></html>\n');
 				done();
 			});
 	});
