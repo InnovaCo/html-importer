@@ -1,6 +1,6 @@
 {
   "name": "html-importer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Processes HTML files (invalid XML) with XSLT for importing into another project",
   "main": "index.js",
   "scripts": {
@@ -29,7 +29,7 @@
     "mkdirp": "^0.5.0",
     "node_xslt": "git+https://github.com/InnovaCo/node_xslt.git#v1.0.1",
     "temp": "^0.8.0",
-    "xslt-preprocessor": "git+https://github.com/InnovaCo/xslt-preprocessor.git#v0.0.1"
+    "xslt-preprocessor": "git+https://github.com/InnovaCo/xslt-preprocessor.git#v0.0.2"
   },
   "devDependencies": {
     "mocha": "^1.20.1"
