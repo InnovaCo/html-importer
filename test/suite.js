@@ -73,9 +73,9 @@ describe('HTML transformer', function() {
 		transformer()
 			.stylesheet(fileObj('xsl/stylesheet1.xsl'))
 			.run(fileObj('html/*.html'), function(err, out) {
-				assert.equal(out.length, 3);
-				assert.equal(out[0].content, fixtures.test1);
-				assert.equal(out[1].content, fixtures.test2);
+				assert.equal(out.length, 4);
+				assert.equal(out[1].content, fixtures.test1);
+				assert.equal(out[2].content, fixtures.test2);
 				done();
 			});
 	});
