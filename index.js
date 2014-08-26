@@ -31,7 +31,7 @@ function transform(templates, docs, transformer) {
 			out = transformer.transform(template, out, transformer._stylesheetParams);
 		});
 
-		return utils.extend({}, item, {
+		return item.copy({
 			content: out
 		});
 	});
@@ -131,7 +131,7 @@ Transformer.prototype = {
 								mkdirp(path.dirname(targetPath), callback);
 							},
 							function(result, callback) {
-								fs.readFile(srcPath, {encoding: 'utf8'}, callback);
+								fs.readFile(srcPath, 'utf8', callback);
 							},
 							function(content, callback) {
 								fs.writeFile(targetPath, preprocessor.transform(content), callback);
@@ -179,14 +179,14 @@ Transformer.prototype = {
 						if (!item.file) {
 							var doc = item.content;
 							if (self.options.processXslt) {
-								doc = preprocessor.transform(item.content);
+								doc = preprocessor.transform(doc);
 							}
 							return xslt.readXsltString(doc);
-						} else if (!cache[item.absPath]) {
-							cache[item.absPath] = xslt.readXsltFile(item.absPath);
+						} else if (!cache[item.origin]) {
+							cache[item.origin] = xslt.readXsltFile(item.origin);
 						}
 
-						return cache[item.absPath];
+						return cache[item.origin];
 					}));
 				});
 			}

@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var assert = require('assert');
+var Resource = require('importer-utils').Resource;
 var dom = require('../lib/dom');
 var rewrite = require('../lib/rewrite-url');
 
@@ -9,9 +10,13 @@ function read(p) {
 }
 
 describe('URL rewriter', function() {
-	var filePath = path.join(__dirname, 'html/urls.html');
-	var res = {file: filePath};
-	var html = fs.readFileSync(filePath, {encoding: 'utf8'});
+	// var filePath = path.join(__dirname, 'html/urls.html');
+	var res =  new Resource({
+		cwd: __dirname,
+		file: 'html/urls.html',
+		prefix: '/a/b/c'
+	});
+	// var html = fs.readFileSync(filePath, {encoding: 'utf8'});
 
 	var fixtures = {
 		urls1: read('fixtures/urls1.html'),
@@ -20,9 +25,9 @@ describe('URL rewriter', function() {
 	};
 
 	it('should properly rewrite URLs', function() {
-		var doc = dom.parse(html);
+		var doc = dom.parse(res.content);
 		var proc = rewrite({
-			root: __dirname,
+			cwd: __dirname,
 			prefix: '/a/b/c'
 		});
 
@@ -31,9 +36,9 @@ describe('URL rewriter', function() {
 	});
 
 	it('should add custom tag to rewrite map', function() {
-		var doc = dom.parse(html);
+		var doc = dom.parse(res.content);
 		var proc = rewrite({
-			root: __dirname,
+			cwd: __dirname,
 			prefix: '/a/b/c',
 			rewriteMap: {
 				foo: ['href']
@@ -45,9 +50,9 @@ describe('URL rewriter', function() {
 	});
 
 	it('should use custom URL transformer', function() {
-		var doc = dom.parse(html);
+		var doc = dom.parse(res.content);
 		var proc = rewrite({
-			root: __dirname,
+			cwd: __dirname,
 			prefix: '/a/b/c',
 			transform: function(url, info) {
 				return '/-' + url;
