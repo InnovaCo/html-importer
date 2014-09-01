@@ -154,11 +154,11 @@ describe('HTML transformer', function() {
 	});
 
 	it('missing entities', function(done) {
-		var content = new Buffer('<?xml version="1.0"?><!DOCTYPE html SYSTEM "test/xinclude/entities.dtd"><html><body><a href="/?a=3&b=4">Hello&nbsp;world</a></body></html>');
+		var content = new Buffer('<?xml version="1.0"?><!DOCTYPE html SYSTEM "test/xinclude/entities.dtd"><html><body><a href="/?a=3&b=4">Hello&nbsp;world &#160;</a></body></html>');
 		transformer({htmlParser: false})
 			.stylesheet(fileObj('xsl/copy.xsl'))
 			.run(content, function(err, out) {
-				assert.equal(out[0].content, '<html><body><a href="/?a=3&amp;b=4">Hello' + String.fromCharCode(160) + 'world</a></body></html>\n');
+				assert.equal(out[0].content, '<html><body><a href="/?a=3&amp;b=4">Hello' + String.fromCharCode(160) + 'world ' + String.fromCharCode(160) + '</a></body></html>\n');
 				done();
 			});
 	});
