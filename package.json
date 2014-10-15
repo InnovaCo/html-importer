@@ -1,6 +1,6 @@
 {
   "name": "html-importer",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Processes HTML files (invalid XML) with XSLT for importing into another project",
   "main": "index.js",
   "scripts": {
