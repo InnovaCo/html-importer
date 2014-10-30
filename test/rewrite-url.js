@@ -21,10 +21,11 @@ describe('URL rewriter', function() {
 	var fixtures = {
 		urls1: read('fixtures/urls1.html'),
 		urls2: read('fixtures/urls2.html'),
-		urls3: read('fixtures/urls3.html')
+		urls3: read('fixtures/urls3.html'),
+		urlsPreserve: read('fixtures/urls-preserve.html')
 	};
 
-	it('should properly rewrite URLs', function() {
+	it('transform URLs', function() {
 		var doc = dom.parse(res.content);
 		var proc = rewrite({
 			cwd: __dirname,
@@ -35,7 +36,7 @@ describe('URL rewriter', function() {
 		assert.equal(dom.stringify(doc), fixtures.urls1);
 	});
 
-	it('should add custom tag to rewrite map', function() {
+	it('add custom tag to rewrite map', function() {
 		var doc = dom.parse(res.content);
 		var proc = rewrite({
 			cwd: __dirname,
@@ -49,7 +50,7 @@ describe('URL rewriter', function() {
 		assert.equal(dom.stringify(doc), fixtures.urls2);
 	});
 
-	it('should use custom URL transformer', function() {
+	it('custom URL transformer', function() {
 		var doc = dom.parse(res.content);
 		var proc = rewrite({
 			cwd: __dirname,
@@ -61,5 +62,22 @@ describe('URL rewriter', function() {
 
 		proc(doc, res);
 		assert.equal(dom.stringify(doc), fixtures.urls3);
+	});
+
+	it('preserve hrefs', function() {
+		var res =  new Resource({
+			cwd: __dirname,
+			file: 'html/urls-preserve.html',
+			prefix: '/a/b/c'
+		});
+
+		var doc = dom.parse(res.content);
+		var proc = rewrite({
+			cwd: __dirname,
+			prefix: '/a/b/c'
+		});
+
+		proc(doc, res);
+		assert.equal(dom.stringify(doc), fixtures.urlsPreserve);
 	});
 });
