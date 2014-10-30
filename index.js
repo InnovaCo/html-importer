@@ -214,7 +214,8 @@ Transformer.prototype = {
 	},
 
 	_processResource: function(res, callback) {
-		var doc = dom.parse(res.content, !this.options.htmlParser ? {xmlMode: true} : null);
+		var opt = !this.options.htmlParser ? {xmlMode: true, decodeEntities: false} : null;
+		var doc = dom.parse(res.content, opt);
 		var queue = this._processors.slice(0);
 		if (this.options.use) {
 			queue = queue.concat(this.options.use);
@@ -222,7 +223,7 @@ Transformer.prototype = {
 
 		var next = function() {
 			if (!queue.length) {
-				res.content = dom.stringify(doc);
+				res.content = dom.stringify(doc, opt);
 				return callback(null, res);
 			}
 

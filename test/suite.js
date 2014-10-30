@@ -43,7 +43,8 @@ describe('HTML transformer', function() {
 		test3:   read('fixtures/test3.xml', true),
 		test4:   read('fixtures/test4.xml', true),
 		test5ru: read('fixtures/test5-ru.xml', true),
-		test5en: read('fixtures/test5-en.xml', true)
+		test5en: read('fixtures/test5-en.xml', true),
+		multi:   read('fixtures/multitransform.html', true)
 	};
 
 	it('apply transforms from buffers', function(done) {
@@ -182,6 +183,22 @@ describe('HTML transformer', function() {
 			.run(content, function(err, out) {
 				assert.equal(out[0].content, '<html><body>\n<script></script><p>test</p>\n</body></html>\n');
 				done();
+			});
+	});
+
+	it('multiple transforms', function(done) {
+		transformer({htmlParser: false})
+			.use(htmlProcessor)
+			.stylesheet(fileObj('xsl/html.xsl'))
+			.run(fileObj('multitransform/file.html'), function(err, out) {
+				assert.equal(out[0].content, fixtures.multi);
+
+				transformer()
+					.stylesheet(fileObj('xsl/html.xsl'))
+					.run(new Buffer(out[0].content), function(err, out) {
+						assert.equal(out[0].content, fixtures.multi);
+						done();
+					});
 			});
 	});
 });
