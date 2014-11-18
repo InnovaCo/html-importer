@@ -22,7 +22,8 @@ describe('URL rewriter', function() {
 		urls1: read('fixtures/urls1.html'),
 		urls2: read('fixtures/urls2.html'),
 		urls3: read('fixtures/urls3.html'),
-		urlsPreserve: read('fixtures/urls-preserve.html')
+		urlsPreserve: read('fixtures/urls-preserve.html'),
+		script: read('fixtures/script.html')
 	};
 
 	it('transform URLs', function() {
@@ -79,5 +80,22 @@ describe('URL rewriter', function() {
 
 		proc(doc, res);
 		assert.equal(dom.stringify(doc), fixtures.urlsPreserve);
+	});
+
+	it('rewrite in scripts', function() {
+		var res =  new Resource({
+			cwd: __dirname,
+			file: 'html/script.html',
+			prefix: '/a/b/c'
+		});
+
+		var doc = dom.parse(res.content);
+		var proc = rewrite({
+			cwd: __dirname,
+			prefix: '/a/b/c'
+		});
+
+		proc(doc, res);
+		assert.equal(dom.stringify(doc), fixtures.script);
 	});
 });
