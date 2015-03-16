@@ -1,7 +1,6 @@
 var fs = require('graceful-fs');
 var path = require('path');
 var async = require('async');
-var glob = require('glob');
 var temp = require('temp').track();
 var mkdirp = require('mkdirp');
 var xslt = require('node_xslt');
@@ -111,7 +110,10 @@ Transformer.prototype = {
 
 		async.waterfall([
 			function(callback) {
-				glob('**/*.*', opt, callback);
+				// выбираем все файлы, а не толко .xsl, так как
+				// сами XSL-файлы могут подключать дополнительные
+				// файлы вроде .dtd или .xml
+				utils.file.glob('**/*.*', opt, callback);
 			},
 			function(files, callback) {
 				temp.mkdir('xsl', function(err, tmp) {

@@ -1,6 +1,6 @@
 {
   "name": "html-importer",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Processes HTML files (invalid XML) with XSLT for importing into another project",
   "main": "index.js",
   "scripts": {
@@ -24,10 +24,9 @@
     "domelementtype": "^1.1.3",
     "domhandler": "^2.2.0",
     "entities": "^1.1.1",
-    "glob": "^4.0.3",
     "graceful-fs": "^3.0.2",
     "htmlparser2": "^3.7.2",
-    "importer-utils": "git+https://github.com/InnovaCo/importer-utils.git#v1.0.2",
+    "importer-utils": "git+https://github.com/InnovaCo/importer-utils.git#v1.0.3",
     "mkdirp": "^0.5.0",
     "node_xslt": "git+https://github.com/InnovaCo/node_xslt.git#v1.0.1",
     "temp": "^0.8.0",
